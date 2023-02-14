@@ -1,0 +1,2 @@
+[napari.plugin]
+TPS-Small-Animal = TPS_Small_Animal

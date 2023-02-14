@@ -1,0 +1,90 @@
+// ***************************************************************
+// ** rigid **
+
+
+// ** fixed general settings **
+// ***************************************************************
+(FixedInternalImagePixelType "float")
+(MovingInternalImagePixelType "float")
+(UseDirectionCosines "true")
+
+(DefaultPixelValue 0)
+(WriteTransformParametersEachIteration "false")
+(ResultImageFormat "nii.gz")
+(ResultImagePixelType "float")
+
+(ShowExactMetricValue "false")
+(ErodeMask "false")
+(ErodeFixedMask "false")
+
+(Registration "MultiResolutionRegistration")
+
+(ImageSampler "RandomCoordinate")
+(CheckNumberOfSamples "false")
+(NewSamplesEveryIteration "true")
+(MaximumNumberOfSamplingAttempts 5)
+(FixedImageBSplineInterpolationOrder 5)
+
+
+//**(CenterOfRotation 61 32 49)**
+//**(CenterOfRotation 312 239)**
+(HowToCombineTransforms "Compose")
+
+(Optimizer "PreconditionedStochasticGradientDescent")
+//**(Optimizer "AdaptiveStochasticGradientDescent")**
+//**(NumberOfGradientMeasurements 1000)**
+//**(NumberOfJacobianMeasurements 73000)**
+//**(NumberOfSamplesForPrecondition 500000)**
+//**(NumberOfSamplesForNoiseCompensationFactor 150000)**
+//**(JacobiTypePreconditioner "true")**
+//**(UseJacobianPreconditioning "false")**
+(MaximumStepLength 1.0)
+(ASGDParameterEstimationMethod "Original")
+(AutomaticParameterEstimation "true")
+(AutomaticTransformInitialization "true")
+(SP_A 20)
+//**(MaximumDisplacementEstimationMethod "99percentile")**
+//**(UseAdaptiveStepSizes "true")**
+
+(Resampler "DefaultResampler")
+(FixedImagePyramid "FixedGenericImagePyramid")
+(MovingImagePyramid "MovingGenericImagePyramid")
+// ***************************************************************
+
+
+// ** setting specific for PCA or non PCA methods **
+// ***************************************************************
+//(Metric "AdvancedMattesMutualInformation")
+(Metric "AdvancedNormalizedCorrelation")
+(FixedKernelBSplineOrder 3)
+(UseFastAndLowMemoryVersion "true")
+
+(AutomaticScalesEstimation "true")
+
+(Interpolator "BSplineInterpolator")
+(ResampleInterpolator "FinalBSplineInterpolator")
+// ***************************************************************
+
+
+// ** setting allowed by QMRITools **
+// ***************************************************************
+(WriteResultImage  "true")
+
+(NumberOfResolutions 0)
+
+(BSplineInterpolationOrder 3)
+(FinalBSplineInterpolationOrder 3)
+
+(NumberOfHistogramBins 32)
+(MaximumNumberOfIterations 1000)
+
+(NumberOfSpatialSamples 19000)
+// ***************************************************************
+
+
+// ** Transform type specific settings **
+// ***************************************************************
+(Transform "EulerTransform")
+// ***************************************************************
+
+//****************** end of file ***************
