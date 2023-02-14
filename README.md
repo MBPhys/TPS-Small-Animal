@@ -1,20 +1,20 @@
-# Partial-Aligner
+# TPS-Small-Animal
 
 [![License](https://img.shields.io/pypi/l/TPS-Small-Animal.svg?color=green)](https://github.com/MBPhys/TPS-Small-Animal/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/TPS-Small-Animal.svg?color=green)](https://pypi.org/project/TPS-Small-Animal)
 [![Python Version](https://img.shields.io/pypi/pyversions/TPS-Small-Animal.svg?color=green)](https://python.org)
 
 This napari plugin comprises the described tools in our paper:
-'''
-Quantification of dose delivery accuracy for small animal proton brain irradiation.
-'''
+```
+Quantification of dose delivery accuracy for small animal proton brain irradiation
+```
 
-The folder ** Example ** contains an example including CR-Image and a CT as well as a parameter file for Elastix.
+The folder **Example** contains an example including CR-Image and a CT as well as a parameter file for Elastix.
 
-##Note
+## Note
 
-The full usage is only supported when TOPAS MC is installed locally. Due to the license permission we can not provide the TOPAS simulation code in this repository.
-Please check the installation guidelines and instructions on the [TOPAS Website](http://www.topasmc.org/home) 
+The full usage is only supported when TOPAS MC is installed locally. Due to the license permission we can not provide the TOPAS simulation code in this repository. Please check the installation guidelines and instructions on the website of [TOPAS MC](http://www.topasmc.org/home "TOPAS MC Link"). 
+
 ----------------------------------
 
 ## Installation
