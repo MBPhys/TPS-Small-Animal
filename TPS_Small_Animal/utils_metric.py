@@ -13,6 +13,29 @@ from torch.nn.modules.loss import _Loss
 
 
 class Gradient_NCCPRO(_Loss):
+    """
+    Computes the gradient-normalized cross correlation (NCC) loss between two tensors, with or without a mask.
+
+    Parameters:
+        use_mask (bool): If True, applies a mask to the input tensors.
+        use_ncc (bool): If True, computes the NCC loss; if False, computes the Gradient-NCC loss.
+    
+    Attributes:
+        None
+
+    Methods:
+        cal_ncc(I, J, eps): Computes the local sums and NCC loss between two tensors I and J.
+        gradncc(I, J, device='cuda', win=None, eps=1e-10): Computes the gradient-NCC loss between two tensors I and J.
+        ncc(I, J, device='cuda', win=None, eps=1e-10): Computes the NCC loss between two tensors I and J.
+
+    Returns:
+        A scalar tensor representing the NCC loss or gradient-NCC loss.
+
+    Example:
+        loss_fn = Gradient_NCCPRO(use_mask=True, use_ncc=False)
+        loss = loss_fn.forward(I, J)
+    """
+
   def __init__(self, use_mask: bool = False, use_ncc: bool =False):
       super().__init__()
       if use_ncc and use_mask:

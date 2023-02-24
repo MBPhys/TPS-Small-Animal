@@ -13,6 +13,39 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 
 def plot__regi_steps(fig, viewer, proj_mov, proj_init_numpy0, target,\
                    gradncc_sim_list, angle_0, angle_1, angle_2, trans_1, trans_2):
+    """
+    Plot the registration steps of 3D-2D registration
+
+    Parameters:
+    -----------
+    fig : matplotlib figure
+        Matplotlib figure object for plotting the registration steps
+    viewer : napari viewer
+        Napari viewer object for 3D visualization
+    proj_mov : torch.Tensor
+        Tensor of moving DRR projections
+    proj_init_numpy0 : numpy.ndarray
+        Initial DRR projection as numpy array
+    target : torch.Tensor
+        Tensor of target projections
+    gradncc_sim_list : list
+        List of gradient normalized cross-correlation similarity measure
+    angle_0 : list
+        List of rotation angles around z-axis
+    angle_1 : list
+        List of rotation angles around y-axis
+    angle_2 : list
+        List of rotation angles around x-axis
+    trans_1 : list
+        List of translation values along x-axis
+    trans_2 : list
+        List of translation values along y-axis
+
+    Returns:
+    --------
+    canvas_fig : matplotlib FigureCanvas
+        Figure canvas object for embedding in GUI application
+    """
     gradncc_sim_list_np = np.array(gradncc_sim_list)
    
     proj_mov_numpy0 = np.array(proj_mov[0,0,:,:].data.cpu())

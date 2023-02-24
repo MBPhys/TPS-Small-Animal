@@ -33,7 +33,73 @@ from itk_napari_conversion import image_from_image_layer, image_layer_from_image
 import itk
 
 class TPS(QWidget):
+ """
+    A widget that performs 3D-2D (CT-XRay) registration.
+
+    Parameters
+    ----------
+    napari_viewer : napari.Viewer
+        A napari viewer instance.
+
+    Attributes
+    ----------
+    viewer : napari.Viewer
+        The napari viewer instance.
+    dict_axes_angle : dict
+        A dictionary that stores the rotation angles for each axis. Initialized to {0: 0.0, 1: 0.0, 2: 0.0}.
+    Image_select_CT : qtpy.QtWidgets.QWidget
+        A container widget that includes a drop-down list to select a CT image.
+    layer_sel_CT : napari.layers.image.Image or None
+        The selected CT image layer. Initialized to None.
+    Image_select_XRay : qtpy.QtWidgets.QWidget
+        A container widget that includes a drop-down list to select an X-Ray image.
+    layer_sel_XRay : napari.layers.image.Image or None
+        The selected X-Ray image layer. Initialized to None.
+    crop_modes_widget : qtpy.QtWidgets.QWidget
+        A container widget that includes a drop-down list to select the projection mode. Initialized to 'MeanIP'.
+    button_proc_CT : qtpy.QtWidgets.QPushButton
+        A button to trigger CT preprocessing.
+    button_proc_XRay : qtpy.QtWidgets.QPushButton
+        A button to trigger X-Ray preprocessing.
+    button_proc_initial : qtpy.QtWidgets.QPushButton
+        A button to trigger fixing physical spacing.
+    w_target_point : qtpy.QtWidgets.QWidget
+        A container widget that includes a QLineEdit to set the target point coordinates. Initialized to (0,0,0).
+    axis : qtpy.QtWidgets.QWidget
+        A container widget that includes a spin box to set the rotation axis. Initialized to 0.
+    angle : qtpy.QtWidgets.QWidget
+        A container widget that includes a float spin box to set the rotation angle. Initialized to 0.0.
+    checkbox_misal : qtpy.QtWidgets.QWidget
+        A container widget that includes a checkbox to show the misalignment correction. Initialized to False.
+    button_misal : qtpy.QtWidgets.QPushButton
+        A button to trigger the misalignment correction.
+    sim_file_Edit : qtpy.QtWidgets.QWidget
+        A container widget that includes a QLineEdit to select the simulation file.
+    button_sim_file : qtpy.QtWidgets.QPushButton
+        A button to open the selected simulation file.
+    sim_tool_file_Edit : qtpy.QtWidgets.QWidget
+        A container widget that includes a QLineEdit to select the directory of the simulation tool.
+    button_simulate : qtpy.QtWidgets.QPushButton
+        A button to start the simulation.
+
+    Raises
+    ------
+    TypeError
+        If the `napari_viewer` parameter is not a `napari.Viewer` instance.
+
+    """
     def __init__(self, napari_viewer):
+        """
+        Initialize the TPS widget.
+
+        Parameters:
+            napari_viewer : napari.Viewer
+              A napari viewer instance.
+
+        Raises:
+            TypeError:
+                If the `napari_viewer` parameter is not a `napari.Viewer` instance.
+        """
         super().__init__()
         self.viewer = napari_viewer
 
@@ -186,7 +252,18 @@ class TPS(QWidget):
 
         #self.button_slider_reset.clicked.connect(lambda event,   Slider_list=Slider_list: self.crop_slider_reset(event, Slider_list ))
            
-    def match_physical_space(self):  
+    def match_physical_space(self):
+    """Perform 2D-2D image spacing natching between a 2D slices (CT) and 2D (X-ray) image.
+
+    This function matchs the physical spacing of a given X-ray image to a corresponding CT image slices using the elastix
+    registration method, and adds the resulting 2D image as a new layer to the Napari viewer.
+
+    Returns:
+    None
+
+    Raises:
+    None
+    """  
      # Call registration function
       possible_images= [x.name  for x in self.viewer.layers if (isinstance(x, napari.layers.image.image.Image))] 
       self.create_proj(self.layer_sel_CT.data)
@@ -240,10 +317,29 @@ class TPS(QWidget):
               self.viewer.add_image(layer.data,  name=layer.name, scale=layer.scale)
     
     def dict_angle_change(self):
+    """
+    Updates the dictionary of axis-angle pairs with the latest changes and performs
+    a 3D parallel transformation based on the updated values.
+
+    Parameters:
+    -----------
+    None
+
+    Returns:
+    --------
+    None
+    """
         self.dict_axes_angle[self.axis[0].value]=self.angle[0].value
         self.transf_3d_parallel()
         
     def dict_axis_change(self):
+    """
+    Changes the value of the first element in `self.angle` based on the corresponding value in `self.dict_axes_angle`.
+    Resets the visibility of the `self.axis[0]` slider and updates the 3D transformation accordingly.
+
+    Returns:
+        None
+    """
         print(self.angle[0].value)
         self.angle[0].value=self.dict_axes_angle[self.axis[0].value]
         #Set up axes and angle Slider
@@ -253,6 +349,16 @@ class TPS(QWidget):
 
 
     def preprocess_CT(self):
+    """
+    Preprocesses the selected CT image layer by performing intensity normalization and updating the `data` attribute
+    of the layer with the preprocessed image.
+
+    Parameters:
+        None
+
+    Returns:
+        None
+    """
         self.CT_non_preprocess_data=np.copy(self.layer_sel_CT.data)
         CT= intensity_normalize_img(self.layer_sel_CT.data, use_nonzero_mask=True, range_norm=True)
        # CT=pad_nd_image(CT, new_shape=(152, 171, 232), no_pad_left_side=False)
@@ -261,6 +367,21 @@ class TPS(QWidget):
         
     
     def preprocess_XRay(self):
+    """
+    Preprocesses the X-ray image by performing several operations:
+    - pads the X-ray image to match the shape of the CT image
+    - resamples the X-ray image to a fixed pixel spacing
+    - normalizes the intensity of the X-ray image and inverts it
+    - pads the X-ray image again to match the shape of the CT image
+    - normalizes the X-ray image using the mean squared error (MSE) method
+    - applies a 3x3 mean filter to the X-ray image
+    - normalizes the X-ray image again using the MSE method
+    - matches the histogram of the X-ray image with that of the CT image
+    - sets the scale of the X-ray layer to [1,1] and updates the X-ray data with the preprocessed image
+
+    Returns:
+    None
+    """
         XRay_process_data=pad_nd_image(self.layer_sel_XRay.data,  new_shape=(self.layer_sel_CT.data.shape[1],self.layer_sel_CT.data.shape[2])) 
         XRay_process_data=resample_image_2D(XRay_process_data, (0.0842, 0.0842), (0.1,0.1))
         print( XRay_process_data.shape)
@@ -282,15 +403,44 @@ class TPS(QWidget):
     
     
     def open_sim_file(self, event):
+        """
+        Opens the simulation file using Atom editor.
+
+        Parameters:
+        ----------
+        event: wx.Event
+            The event that triggers the function.
+
+        Returns:
+        -------
+        None
+        """
         atom_call= 'atom '+self.sim_file_Edit[0].value.as_posix()
         subprocess.run(atom_call, shell=True)   
 
-    def execute_sim(self):  
+    def execute_sim(self): 
+    """
+    Executes the simulation by calling the specified simulation tool and file (TOPAS, FLUKA, etc.).
+
+    Returns:
+        None
+    """ 
         sim_call= self.sim_tool_file_Edit[0].value.as_posix() + ' ' + self.sim_file_Edit[0].value.as_posix()
         subprocess.run(sim_call, shell=True)   
     
     def transf_3d_parallel(self):
-     
+    """Applies 3D transformation to the CT volume in parallel computation.
+
+    The function applies a 3D transformation to the CT volume using a worker thread to
+    avoid blocking the main thread. Once the transformation is completed, the function
+    sets the resulting volume as the data for the 'CT_Rot' layer, or adds a new layer
+    with the name 'CT_Rot' and the transformed volume as data, if such layer does not
+    exist yet. The function also calls the 'create_proj' method to create the projection
+    image of the transformed volume.
+
+    Returns:
+        None
+    """     
         def _on_done(result):
             layer_list= [x.name  for x in self.viewer.layers]
             scale_CT=self.layer_sel_CT.scale
@@ -310,6 +460,19 @@ class TPS(QWidget):
     
     @thread_worker    
     def transf_3d(self):
+    """
+     Transforms a 3D image using affine transformations based on the given rotation angles and target point.
+
+    Parameters:
+      None
+
+    Returns:
+        transformed_image_3D: ndarray
+             The transformed 3D image.
+
+    Raises:
+      None 
+    """
         Order=3
         target_point=self.w_target_point[0].value
         if target_point is not None and isinstance(target_point, tuple):
@@ -338,6 +501,17 @@ class TPS(QWidget):
         return transformed_image_3D 
     
     def misalignment_correction_parallel(self):
+    """Perform misalignment correction in parallel.
+
+    This function uses the `misalignment_correction` method to correct misalignments between a 2D image stack and a 3D volume. The correction is performed in parallel, and the results are displayed in the  
+    viewer window.
+
+    Returns:
+        None
+
+    Raises:
+        None
+    """
         def _on_done(result):
             mov_2D, mov_3D =result
             self.viewer.add_image(mov_2D)
@@ -373,7 +547,33 @@ class TPS(QWidget):
     
     @thread_worker    
     def misalignment_correction(self):
-        
+    """
+    Apply misalignment correction to a 3D image (CT) and 2D projection (X-Ray) using a projection model to produce a DRR and gradient-based optimization.
+
+    Parameters:
+        self : object
+               An instance of the class that calls this function.
+
+    Returns:
+        tuple: (np.ndarray: Aligned projection of the DRR to 2D target projection (X-Ray), np.ndarray: Aligned DRR to 2D target projection (X-Ray)) 
+         
+         
+
+    Notes
+    -----
+    This function uses a projection model to align a 3D image (CT) and 2D projection (X-Ray) by optimizing a gradient-based loss function. It takes the following steps:
+
+    1. Sets the initial translation and angles.
+    2. Sets the center of rotation point.
+    3. Sets the optimizer and loss function.
+    4. Runs the training loop strategy, which includes updating the rotation angles and translation based on the optimizer, checking for convergence, and breaking if the convergence threshold is met.
+    5. Creates a list of angles and translations for plotting.
+    6. Uses the projection model to create a 3D projection of the moving image (DRR).
+    7. Computes the gradient of normalized cross correlation (NCC) loss between the target (X-Ray) and moving image (DRR).
+    8. Backpropagates the loss to update the rotation angles and translation.
+    9. Updates the optimizer to zero and appends the gradient NCC loss to a list for plotting.
+
+    """        
         device = torch.device("cuda")
         
         #Set initial translation and angles
@@ -504,6 +704,18 @@ class TPS(QWidget):
         return (np.array((mov[0,0,:,:]).data.cpu()), np.array((mov_3D[0,0,:,:,:]).data.cpu()))
         
     def create_proj(self, img_3D):
+        """Create a projection of a 3D image and add it to the viewer.
+
+        Parameters:
+           img_3D (ndarray): A 3D image to project.
+
+        Returns:
+           None
+
+        Notes:
+          - The projection type is determined by the value of the `crop_modes_widget` attribute.
+          - The projection image is added to the viewer as a new layer, or updated if the layer already exists.
+        """
         scale_proj=self.layer_sel_CT.scale[1:3]
         possible_images= [x.name  for x in self.viewer.layers if (isinstance(x, napari.layers.image.image.Image))]   
         if self.crop_modes_widget[0].value=='MIP':
@@ -521,6 +733,15 @@ class TPS(QWidget):
           
     
     def max_proj(self, img, slices_num=1000):
+    """Compute the maximum intensity projection (MIP) of a 3D image along the Z axis.
+
+    Parameters:
+        img (numpy.ndarray): A 3D image array of shape (z, y, x).
+        slices_num (int): The number of slices to include in the MIP calculation. Defaults to 1000.
+
+    Returns:
+        numpy.ndarray: A 2D MIP image array of shape (y, x).
+    """
         img_shape = img.shape     
         for i in range(img_shape[0]):
             start = max(0, i-slices_num)
@@ -529,6 +750,17 @@ class TPS(QWidget):
     
     
     def mean_proj(self, img, slices_num=1000):
+    """
+    Compute the mean projection of a 3D numpy array along the z-axis.
+
+    Parameters:
+        img (np.ndarray): A 3D numpy array containing the input image data.
+        slices_num (int, optional): The number of slices to average. Defaults to 1000.
+
+    Returns:
+        np.ndarray: A 2D numpy array representing the mean projection of the input image along the z-axis.
+
+    """
         img_shape = img.shape
         for i in range(img_shape[0]):
             start = max(0, i-slices_num)
@@ -536,6 +768,20 @@ class TPS(QWidget):
         return mean
    
     def selected_layer(self):
+    """Selects the layer for CT and X-ray images.
+
+    This function sets the selected CT and X-ray image layers based on the current 
+    user selection. It tries to select the specified layer and, if successful, sets it 
+    as the active layer. If the selection fails, it does nothing.
+
+    Parameters:
+       self : object
+        Object instance that holds the Image_select_CT and Image_select_XRay lists and 
+        viewer layers.
+
+    Returns:
+       None
+    """
             select_layer_name=self.Image_select_CT[0].current_choice
             try:
              self.layer_sel_CT=self.viewer.layers[select_layer_name] 
@@ -552,12 +798,41 @@ class TPS(QWidget):
 
 
     def remove_combo(self, event):
+    """
+    Removes the first two widgets in the layout of the current instance of 
+    `QComboBox` when called in response to the given `event`.
+
+    Parameters:
+      event : QEvent
+         The event that triggers the removal of the widgets.
+
+    Returns:
+
+    None
+    """
             self.layout().itemAt(0).widget().deleteLater()
             self.layout().itemAt(1).widget().deleteLater()
 
 
              
     def change_combo(self, event):
+    """
+    Callback function for updating the CT and X-Ray image selection.
+
+    Parameters:
+       event : napari.utils.event.Event
+         The event object.
+
+    Returns:
+       None
+
+    Notes
+    -----
+    This function updates the CT and X-Ray image selection drop-down menus based on the available image layers in the
+    viewer. It also updates the current choice for each menu if it was previously selected. Finally, it connects the
+    change event of each menu to the `selected_layer` function.
+
+    """
 
              possible_images_CT= [x.name  for x in self.viewer.layers if (isinstance(x, napari.layers.image.image.Image) and x.ndim==3)]
              self.CT_non_preprocess_data=None

@@ -12,18 +12,78 @@ from skimage.transform import resize
 import torch
 
 def radtoangle(rad):
+    """
+    Convert radians to degrees.
+
+    Parameters:
+        rad : float or array-like
+           Angle(s) in radians to be converted to degrees.
+
+    Returns:
+        float or ndarray
+           The corresponding angle(s) in degrees.
+
+    Examples
+    --------
+    >>> radtoangle(np.pi/2)
+    90.0
+    >>> radtoangle([0, np.pi/4, np.pi/2])
+    array([  0.,  45.,  90.])
+    """
     angle=rad*180/ np.pi
     return angle
 
 def angletorad(angle):
+    """
+    Convert angle from degrees to radians.
+
+    Parameters:
+        angle : float
+           Angle in degrees.
+
+    Returns:
+        float
+           Angle converted to radians.
+    """
     rad= angle*np.pi/180
     return rad 
 
     
 def check_np_elements(array):
+    """
+    Check if the input NumPy array has non-zero number of elements.
+
+    Parameters:
+        array (numpy.ndarray): The input array to check.
+
+    Returns:
+        bool: True if the input array has non-zero number of elements, False otherwise.
+
+    Raises:
+        ValueError: If the input is not a NumPy array.
+
+    """
     return array.ndim and array.size
 
 def resample_image_2D(data, original_spacing, target_spacing, order_data=3, cval_data=0):
+    """
+    Resamples a 2D image with the specified spacing.
+
+    Paramters:
+        data (ndarray): The input 2D image to be resampled.
+        original_spacing (tuple): A tuple representing the original pixel spacing in (y, x) order.
+        target_spacing (tuple): A tuple representing the target pixel spacing in (y, x) order.
+        order_data (int): The order of the spline interpolation used for resampling. Default is 3.
+        cval_data (float): The value to use for padding outside the boundary of the input image.
+                           Default is 0.
+
+    Returns:
+        ndarray: The resampled 2D image with the same dtype as the input.
+
+    Raises:
+        AssertionError: If the input data is None or its shape is not 2D.
+
+    """
     assert not (data is None)
     if data is not None:
         assert len(data.shape)==2, "data must be y x"
@@ -45,12 +105,53 @@ def resample_image_2D(data, original_spacing, target_spacing, order_data=3, cval
 
 
 def normalize_minmse(x, target):
+    """
+    Normalize the input array `x` to have the same mean-squared error (MSE)
+    as the target array `target`.
+
+    Parameters:
+        x : np.ndarray
+            The input array to be normalized.
+        target : np.ndarray
+                The target array to match the MSE of.
+
+    Returns:
+        np.ndarray
+            The normalized input array `x` with the same MSE as `target`.
+
+    Notes
+    -----
+    This function computes the scaling factor `alpha` and offset `beta` using
+    the covariance between `x` and `target`, such that the resulting normalized
+    array `alpha*x + beta` has the same MSE as `target`.
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3, 4])
+    >>> target = np.array([3, 4, 5, 6])
+    >>> normalize_minmse(x, target)
+    array([2.5, 3. , 3.5, 4. ])
+
+    """
     cov = np.cov(x.flatten(),target.flatten())
     alpha = cov[0,1] / (cov[0,0]+1e-10)
     beta = target.mean() - alpha*x.mean()
     return alpha*x + beta
 
 def create_nonzero_mask(data, channel=False):
+    """
+    Create a binary mask from the input data that marks the non-zero voxels.
+
+    Parameters:
+        data (ndarray): Input data with shape (Z, Y, X) for 3D or (Y, X) for 2D.
+                        Alternatively, it can have shape (C,Z,Y,X) for 3D with
+                        multiple channels.
+        channel (bool, optional): Set to True when `data` has multiple channels.
+                                  Defaults to False.
+
+    Returns:
+        ndarray: A binary mask with the same shape as `data` that marks the non-zero voxels.
+    """
     assert len(data.shape) == 4 or len(data.shape) == 3 or len(data.shape) == 2, "data must have shape (Z, Y, X), shape (Y, X) or shape (C,Z,Y,X)"
 
     if channel:
@@ -69,6 +170,19 @@ def create_nonzero_mask(data, channel=False):
     return nonzero_mask
 
 def intensity_normalize_img(data, use_nonzero_mask=True, range_norm=True):
+    """Normalize the intensity values of a given image data.
+
+    Parameters:
+        data (np.ndarray): The 3D medical image data to be normalized.
+        use_nonzero_mask (bool): Whether to use a mask that only includes non-zero voxels. Defaults to True.
+        range_norm (bool): Whether to perform range normalization. Defaults to True.
+
+    Returns:
+        np.ndarray: The normalized image data.
+
+    Raises:
+        TypeError: If the input data is not a numpy array.
+    """
         print("normalization...")
         data=img_as_float32(data)
         nonzero_mask = create_nonzero_mask(data, channel=False)
@@ -91,6 +205,19 @@ def intensity_normalize_img(data, use_nonzero_mask=True, range_norm=True):
         return data #, mask_da  
     
 def range_normalization(data, rnge=(0, 1), mask=None, per_channel=True, eps=1e-8):
+    """
+    Normalizes input data to a specified range.
+
+    Parameters:
+        data (ndarray): Input data with shape (C, Z, Y, X), shape (C, Y, X), shape (Z, Y, X) or shape (Y, X)
+        rnge (tuple, optional): The desired range for the output data. Default is (0, 1).
+        mask (ndarray, optional): A boolean mask indicating which values to normalize. Default is None.
+        per_channel (bool, optional): If True, normalize each channel independently. Default is True.
+        eps (float, optional): A small value to avoid dividing by zero. Default is 1e-8.
+
+    Returns:
+        ndarray: Normalized data with the same shape as the input data.
+    """
     assert len(data.shape) == 4 or len(data.shape) == 3 or len(data.shape) == 2, "data must have shape (C, Z, Y, X), shape (C, Y, X), shape (Z, Y, X) or shape (Y, X)"
     data_normalized = np.zeros(data.shape, dtype=data.dtype)    
     if per_channel:
@@ -112,6 +239,16 @@ def range_normalization(data, rnge=(0, 1), mask=None, per_channel=True, eps=1e-8
 
 
 def min_max_normalization(data, eps):
+    """
+    Normalizes the input data using min-max normalization.
+
+    Parameters:
+        data (numpy.ndarray): Input data to be normalized.
+        eps (float): A small value added to the denominator to avoid division by zero.
+
+    Returns:
+        numpy.ndarray: Normalized data with values between 0 and 1.
+    """
     mn = data.min()
     mx = data.max()
     data_normalized = data - mn
@@ -121,7 +258,30 @@ def min_max_normalization(data, eps):
     return data_normalized    
 
 def tensor_exp2torch(T, BATCH_SIZE, device, data_type=torch.float, grad=True):
-   # print(data_type)
+    """
+    Converts a numpy array to a PyTorch tensor.
+
+    Paramters:
+        T (numpy.ndarray): Input tensor 
+        BATCH_SIZE (int): Batch size to repeat the tensor.
+        device (str): Device on which to create the tensor ('cpu' or 'cuda').
+        data_type (torch.dtype, optional): Data type of the resulting tensor (default=torch.float).
+        grad (bool, optional): Whether the tensor requires gradients (default=True).
+
+    Returns:
+        torch.Tensor: A PyTorch tensor with shape (BATCH_SIZE, Channel, Input tensor dimensions).
+
+    Example:
+        >>> T = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        >>> tensor_exp2torch(T, 2, 'cuda')
+        tensor([[[1., 2., 3.],
+                 [4., 5., 6.],
+                 [7., 8., 9.]],
+
+                [[1., 2., 3.],
+                 [4., 5., 6.],
+                 [7., 8., 9.]]], device='cuda:0', dtype=torch.float32, requires_grad=True)
+    """
     T = np.expand_dims(T, axis=0)
     T = np.expand_dims(T, axis=0)
     T = np.repeat(T, BATCH_SIZE, axis=0)
@@ -131,6 +291,57 @@ def tensor_exp2torch(T, BATCH_SIZE, device, data_type=torch.float, grad=True):
     return T
     
 def pad_nd_image(image, new_shape=None, mode="constant", kwargs=None, return_slicer=False, no_pad_left_side=False, shape_must_be_divisible_by=None):
+"""
+Pad an n-dimensional numpy array `image` to a desired `new_shape`.
+
+Parameters
+----------
+image : ndarray
+    The input array to be padded.
+new_shape : tuple or ndarray, optional
+    The desired new shape of the input array after padding. If not provided,
+    `shape_must_be_divisible_by` must be set and the new shape will be the
+    smallest possible shape that is divisible by the values in
+    `shape_must_be_divisible_by`.
+mode : str, optional
+    One of the following string values indicating the type of padding to use:
+    'constant', 'edge', 'linear_ramp', 'maximum', 'mean', 'median', 'minimum',
+    'reflect', 'symmetric', 'wrap'.
+kwargs : dict, optional
+    Additional keyword arguments to be passed to the `np.pad` function.
+return_slicer : bool, optional
+    Whether to also return a tuple of slice objects representing the region
+    of the padded array that corresponds to the original unpadded array.
+no_pad_left_side : bool, optional
+    Whether to avoid padding on the left side of each dimension. Default is False.
+shape_must_be_divisible_by : tuple or ndarray, optional
+    The values by which the new shape must be divisible. If not provided,
+    `new_shape` must be set.
+
+Returns
+-------
+padded_image : ndarray
+    The input array padded to the desired shape.
+slicer : tuple of slice objects, optional
+    If `return_slicer` is True, a tuple of slice objects representing the
+    region of the padded array that corresponds to the original unpadded array.
+
+Notes
+-----
+The function pads the input array such that the difference between the old and
+new shapes is evenly distributed across all dimensions. The `shape_must_be_divisible_by`
+parameter is particularly useful when padding images for convolutional neural networks,
+as it ensures that the dimensions of the image are divisible by a given factor.
+
+References
+----------
+1. numpy.pad documentation: https://numpy.org/doc/stable/reference/generated/numpy.pad.html
+
+2. Isensee Fabian, Jäger Paul, Wasserthal Jakob, Zimmerer David, Petersen Jens, Kohl Simon, 
+Schock Justus, Klein Andre, Roß Tobias, Wirkert Sebastian, Neher Peter, Dinkelacker Stefan, 
+Köhler Gregor, Maier-Hein Klaus (2020). batchgenerators - a python framework for data 
+augmentation. doi:10.5281/zenodo.3632567
+"""
     if kwargs is None:
         kwargs = {'constant_values': 0}
 
